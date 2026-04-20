@@ -2,7 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-slate-950 text-white;
-  font-family: Inter, system-ui, sans-serif;
+@layer base {
+  body {
+    background-color: #07111c;
+    color: white;
+    font-family: "Manrope", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    min-height: 100dvh;
+    background-image:
+      radial-gradient(circle at top left, rgba(103,198,238,0.13) 0%, transparent 28%),
+      radial-gradient(circle at top right, rgba(143,216,255,0.08) 0%, transparent 20%),
+      linear-gradient(180deg, #06101a 0%, #081521 32%, #0a1623 100%);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.07] rounded-3xl;
+  }
+
+  .glass-dark {
+    background: rgba(13, 27, 42, 0.80);
+    @apply backdrop-blur-xl border border-white/[0.06] rounded-3xl;
+  }
+
+  .text-muted {
+    color: #a9bfd3;
+  }
+
+  .text-soft {
+    color: #7f95a8;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-extrabold
+           transition-all duration-200 hover:-translate-y-0.5 active:scale-95;
+    background: linear-gradient(135deg, #67c6ee, #2f8db8);
+    box-shadow: 0 14px 32px rgba(74, 169, 215, 0.22);
+    color: #06111b;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-extrabold
+           border border-white/[0.12] bg-white/[0.03] text-white
+           transition-all duration-200 hover:-translate-y-0.5 active:scale-95;
+  }
+}
+
+.train-dot {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(103, 198, 238, 0.12); }
+  50%       { box-shadow: 0 0 0 10px rgba(103, 198, 238, 0.22); }
 }
