@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -25,7 +25,9 @@ function friendlyError(code: string): string {
 
 export default function Login() {
   const navigate  = useNavigate();
+  const location  = useLocation();
   const videoRef  = useRef<HTMLVideoElement>(null);
+  const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/dashboard";
 
   const [mode, setMode]         = useState<"login" | "signup">("login");
   const [email, setEmail]       = useState("");
@@ -45,13 +47,13 @@ export default function Login() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
-        navigate("/dashboard", { replace: true });
+        navigate(redirectTo, { replace: true });
       } else {
         setChecking(false); // not logged in → show login form
       }
     });
     return () => unsub();
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +65,7 @@ export default function Login() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-      navigate("/dashboard", { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       setError(friendlyError(err.code));
     } finally {
@@ -76,7 +78,7 @@ export default function Login() {
     setError("");
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate("/dashboard", { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       setError(friendlyError(err.code));
     } finally {
@@ -212,6 +214,18 @@ export default function Login() {
                   ? "Sign in to access the controller dashboard."
                   : "Sign up to get started with TrackMind AI."}
               </p>
+              {redirectTo !== "/dashboard" && (
+                <div
+                  className="mb-5 rounded-2xl px-4 py-3 text-sm"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  After sign-in, you will continue to <span className="font-bold text-white">{redirectTo}</span>.
+                </div>
+              )}
 
               {/* Google */}
               <button
