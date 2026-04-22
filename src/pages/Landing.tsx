@@ -141,10 +141,24 @@ export default function Landing() {
               <a href="#about"    className="hover:text-white transition-colors duration-200">About</a>
               <a href="#solution" className="hover:text-white transition-colors duration-200">Solution</a>
               <a href="#features" className="hover:text-white transition-colors duration-200">Features</a>
+              <Link to="/book" className="hover:text-white transition-colors duration-200">Book Ticket</Link>
               <Link to="/dashboard" className="hover:text-white transition-colors duration-200">Dashboard</Link>
             </div>
 
             {/* CTA */}
+            <Link
+              to="/book"
+              className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              style={{
+                background: "rgba(255,255,255,0.1)",
+                border: `1px solid rgba(255,255,255,0.25)`,
+                color: "#ffffff",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              Book Ticket
+            </Link>
+
             <Link
               to="/dashboard"
               className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
@@ -213,6 +227,18 @@ export default function Landing() {
                 <div className="flex flex-wrap gap-3">
                   {/* Primary CTA — solid white */}
                   <Link
+                    to="/book"
+                    className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      color: "#ffffff",
+                      backdropFilter: "blur(12px)",
+                    }}
+                  >
+                    Book Smart Ticket
+                  </Link>
+                  <Link
                     to="/dashboard"
                     className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                     style={{
@@ -224,9 +250,9 @@ export default function Landing() {
                     Explore Platform →
                   </Link>
                   {/* Secondary CTA — ghost */}
-                  <a
-                    href="#about"
-                    className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base text-white transition-all duration-200 hover:-translate-y-0.5"
+                    <a
+                      href="#about"
+                      className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base text-white transition-all duration-200 hover:-translate-y-0.5"
                     style={{
                       background: "rgba(255,255,255,0.06)",
                       border: "1px solid rgba(255,255,255,0.2)",
@@ -238,8 +264,9 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="flex gap-12">
+            <div className="flex gap-12">
                 <Stat val="30s"  label="Recommendation turnaround" />
+                <Stat val="PNR"  label="Booking and status workflow" />
                 <Stat val="25%"  label="Reduction in section delays" />
                 <Stat val="24×7" label="Real-time control rooms" />
               </div>
