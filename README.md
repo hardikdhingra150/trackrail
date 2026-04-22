@@ -1,73 +1,176 @@
-# React + TypeScript + Vite
+# TrackMind AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+TrackMind AI is a railway operations dashboard for monitoring live train movement, detecting block conflicts, predicting delays, and recommending controller actions in real time.
 
-Currently, two official plugins are available:
+It combines a React + Vite frontend, Firebase Authentication + Firestore, and a FastAPI backend with Random Forest prediction, SHAP-based explanations, and MILP/RL-inspired conflict handling.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What It Does
 
-## React Compiler
+- Live train block map across `B1` to `B12`
+- Delay prediction for active trains
+- AI conflict detection and recommendation ranking
+- Conflict resolution history and analytics views
+- Controller feedback capture for recommendation quality
+- Firebase-backed auth and operational data
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the ESLint configuration
+- Frontend: React, TypeScript, Vite, Tailwind, Recharts
+- Backend: FastAPI, scikit-learn, SHAP, PuLP, pandas
+- Data/Auth: Firebase Auth, Firestore
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Structure
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+trackmind-ai/
+├── backend/                 # FastAPI backend, ML models, training scripts
+├── public/                  # Static assets
+├── src/components/          # Dashboard and UI components
+├── src/pages/               # Landing, login, dashboard, analytics
+├── src/lib/                 # Firebase and API helpers
+├── src/utils/               # Prediction, conflict, feedback, seed helpers
+├── firebase.json
+├── firestore.rules
+└── package.json
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Main Features
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Dashboard
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Live train status cards
+- Parallel train detail viewing
+- Block occupancy map
+- Conflict alerts
+- AI recommendations panel
+
+### Analytics
+
+- Delay trend chart
+- Conflict history
+- RL/controller approval summary
+- Block heatmap and severity breakdowns
+
+### Backend APIs
+
+- `POST /predict-delay`
+- `POST /predict-delay/batch`
+- `POST /predict-delay/live-batch`
+- `POST /resolve-conflict`
+- `GET /health`
+- `GET /model-info`
+- `GET /stats`
+- `GET /top-delayed`
+- `GET /station-stats/{station_code}`
+- `GET /train-route/{train_number}`
+
+## Local Setup
+
+### 1. Install frontend dependencies
+
+```bash
+npm install
 ```
+
+### 2. Create frontend environment file
+
+Create `.env` in the repo root with your Firebase values:
+
+```env
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
+VITE_API_URL=http://localhost:8000
+```
+
+### 3. Install backend dependencies
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 4. Start the backend
+
+From `backend/`:
+
+```bash
+uvicorn main:app --reload
+```
+
+The API will run at [http://localhost:8000](http://localhost:8000).
+
+### 5. Start the frontend
+
+From the repo root:
+
+```bash
+npm run dev
+```
+
+The app will run at [http://localhost:5173](http://localhost:5173).
+
+## Model and Data Notes
+
+- The backend ships with trained Random Forest artifacts in `backend/models/`
+- Training and preparation utilities live in:
+  - `backend/prepare_data.py`
+  - `backend/train_rf.py`
+  - `backend/train_rl.py`
+- Explanation logic is in `backend/xai_explainer.py`
+
+## Firebase Notes
+
+- Firestore is used for trains, conflicts, recommendations, RL feedback, and booking data
+- Firebase Auth is used for login
+- Some UI views include local fallbacks when Firestore quota or seed data is incomplete
+
+## Known Operational Notes
+
+- If Firestore quota is exceeded, some live reseeding flows may fail temporarily
+- The UI includes fallback corridor spreading so the map remains usable while backend train seeding is incomplete
+- Large production assets may increase bundle size warnings during build
+
+## Scripts
+
+Frontend:
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+Backend:
+
+```bash
+cd backend
+uvicorn main:app --reload
+python3 train_rf.py
+python3 seed_station_codes.py
+```
+
+## Build Check
+
+Frontend production build:
+
+```bash
+npm run build
+```
+
+Backend syntax check:
+
+```bash
+python3 -m py_compile backend/main.py
+```
+
+## Repository
+
+GitHub: [https://github.com/hardikdhingra150/trackrail](https://github.com/hardikdhingra150/trackrail)
