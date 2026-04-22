@@ -1,5 +1,5 @@
 import { signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -362,6 +362,24 @@ export default function Dashboard() {
           )}
 
           {/* Tour replay */}
+          <Link
+            to="/book"
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
+              cursor-pointer bg-white/[0.04] border border-white/[0.08] text-white/55
+              hover:bg-white/[0.1] hover:text-white transition-all"
+          >
+            Book Ticket
+          </Link>
+
+          <Link
+            to="/my-bookings"
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
+              cursor-pointer bg-white/[0.04] border border-white/[0.08] text-white/55
+              hover:bg-white/[0.1] hover:text-white transition-all"
+          >
+            My Bookings
+          </Link>
+
           <button
             onClick={() => {
               sessionStorage.removeItem("tourDone");
