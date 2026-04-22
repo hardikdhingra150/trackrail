@@ -1,0 +1,26 @@
+{
+  "features": [
+    "pct_right_time",
+    "pct_slight_delay",
+    "pct_significant_delay",
+    "pct_cancelled_unknown",
+    "station_code_enc"
+  ],
+  "target": "delay_class",
+  "classes": [
+    "HIGH",
+    "LOW",
+    "MEDIUM"
+  ],
+  "accuracy": 0.8793,
+  "cv_mean": 0.8878,
+  "feature_importances": {
+    "pct_right_time": 0.3431250003788426,
+    "pct_slight_delay": 0.18404120438269672,
+    "pct_significant_delay": 0.43027464072276206,
+    "pct_cancelled_unknown": 0.021312663019999824,
+    "station_code_enc": 0.021246491495698936
+  },
+  "n_estimators": 300,
+  "model_type": "RandomForestClassifier"
+}
