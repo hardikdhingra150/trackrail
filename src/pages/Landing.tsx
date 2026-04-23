@@ -48,6 +48,47 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
+function HeroActionButton({
+  to,
+  title,
+  subtitle,
+  solid = false,
+}: {
+  to: string;
+  title: string;
+  subtitle: string;
+  solid?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex min-w-[280px] flex-col items-start justify-center rounded-[32px] px-7 py-5 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
+      style={
+        solid
+          ? {
+              background: "#ffffff",
+              color: "#050505",
+              boxShadow: "0 16px 40px rgba(255,255,255,0.2)",
+            }
+          : {
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "#ffffff",
+              backdropFilter: "blur(12px)",
+            }
+      }
+    >
+      <span className="text-[1.05rem] font-extrabold leading-none">{title}</span>
+      <span
+        className="mt-2 text-xs font-semibold uppercase tracking-[0.16em]"
+        style={{ color: solid ? "rgba(5,5,5,0.58)" : "rgba(255,255,255,0.58)" }}
+      >
+        {subtitle}
+      </span>
+    </Link>
+  );
+}
+
 function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
   return (
     <div
@@ -114,63 +155,68 @@ export default function Landing() {
           className="fixed top-0 left-0 right-0"
           style={{ zIndex: 50, background: "transparent", border: "none" }}
         >
-          <div className="max-w-[1220px] mx-auto px-6 flex items-center justify-between py-5">
+          <div className="max-w-[1220px] mx-auto px-6 py-5">
+            <div className="flex items-center justify-between gap-8">
 
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-[14px] grid place-items-center font-black text-lg"
-                style={{
-                  background: "#ffffff",
-                  color: "#050505",
-                  boxShadow: `0 8px 24px rgba(255,255,255,0.2)`,
-                }}
-              >
-                T
+              {/* Logo */}
+              <Link to="/" className="flex items-center gap-3 shrink-0">
+                <div
+                  className="w-10 h-10 rounded-[14px] grid place-items-center font-black text-lg"
+                  style={{
+                    background: "#ffffff",
+                    color: "#050505",
+                    boxShadow: `0 8px 24px rgba(255,255,255,0.2)`,
+                  }}
+                >
+                  T
+                </div>
+                <span className="font-extrabold text-base tracking-tight text-white">
+                  TrackMind AI
+                </span>
+              </Link>
+
+              <div className="hidden lg:flex flex-1 items-center justify-end gap-8">
+                {/* Nav links */}
+                <div
+                  className="flex items-center gap-6 text-sm font-medium"
+                  style={{ color: "rgba(255,255,255,0.6)" }}
+                >
+                  <a href="#about"    className="hover:text-white transition-colors duration-200">About</a>
+                  <a href="#solution" className="hover:text-white transition-colors duration-200">Solution</a>
+                  <a href="#features" className="hover:text-white transition-colors duration-200">Features</a>
+                  <Link to="/book" className="hover:text-white transition-colors duration-200">Book Ticket</Link>
+                  <Link to="/dashboard" className="hover:text-white transition-colors duration-200">Dashboard</Link>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <Link
+                    to="/book"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+                    style={{
+                      background: "rgba(255,255,255,0.1)",
+                      border: `1px solid rgba(255,255,255,0.25)`,
+                      color: "#ffffff",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    Book Ticket
+                  </Link>
+
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+                    style={{
+                      background: "rgba(255,255,255,0.1)",
+                      border: `1px solid rgba(255,255,255,0.25)`,
+                      color: "#ffffff",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    Live Dashboard →
+                  </Link>
+                </div>
               </div>
-              <span className="font-extrabold text-base tracking-tight text-white">
-                TrackMind AI
-              </span>
-            </Link>
-
-            {/* Nav links */}
-            <div
-              className="hidden md:flex items-center gap-8 text-sm font-medium"
-              style={{ color: "rgba(255,255,255,0.6)" }}
-            >
-              <a href="#about"    className="hover:text-white transition-colors duration-200">About</a>
-              <a href="#solution" className="hover:text-white transition-colors duration-200">Solution</a>
-              <a href="#features" className="hover:text-white transition-colors duration-200">Features</a>
-              <Link to="/book" className="hover:text-white transition-colors duration-200">Book Ticket</Link>
-              <Link to="/dashboard" className="hover:text-white transition-colors duration-200">Dashboard</Link>
             </div>
-
-            {/* CTA */}
-            <Link
-              to="/book"
-              className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                border: `1px solid rgba(255,255,255,0.25)`,
-                color: "#ffffff",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              Book Ticket
-            </Link>
-
-            <Link
-              to="/dashboard"
-              className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                border: `1px solid rgba(255,255,255,0.25)`,
-                color: "#ffffff",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              Live Dashboard →
-            </Link>
           </div>
         </nav>
 
@@ -200,67 +246,66 @@ export default function Landing() {
               className="font-display font-bold text-white mb-6"
               style={{
                 fontSize: "clamp(3.5rem,7vw,7.5rem)",
-                lineHeight: 0.92,
+                lineHeight: 0.9,
                 letterSpacing: "-0.02em",
                 textShadow: "0 4px 60px rgba(0,0,0,0.8)",
+                maxWidth: "1100px",
               }}
             >
-              Smarter rail<br />
-              movement,{" "}
+              <span style={{ display: "block" }}>Smarter rail</span>
+              <span style={{ display: "block" }}>movement,</span>
               <span
                 style={{
+                  display: "block",
                   color: "rgba(255,255,255,0.92)",
                   WebkitTextStroke: "1px rgba(255,255,255,0.4)",
                 }}
               >
-                guided by<br />calm precision.
+                guided by
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  color: "rgba(255,255,255,0.92)",
+                  WebkitTextStroke: "1px rgba(255,255,255,0.4)",
+                }}
+              >
+                calm precision.
               </span>
             </h1>
 
-            <div className="flex flex-col lg:flex-row lg:items-end gap-10 lg:gap-20">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10 lg:gap-12">
               <div className="max-w-[520px]">
                 <p className="text-lg leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.62)" }}>
                   TrackMind AI helps railway section controllers detect conflicts early,
                   evaluate operational options, and act before delay cascades across the
                   network — all in under 30 seconds.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  {/* Primary CTA — solid white */}
-                  <Link
-                    to="/book"
-                    className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                    style={{
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      color: "#ffffff",
-                      backdropFilter: "blur(12px)",
-                    }}
-                  >
-                    Book Smart Ticket
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                    style={{
-                      background: "#ffffff",
-                      color: "#050505",
-                      boxShadow: `0 16px 40px rgba(255,255,255,0.2)`,
-                    }}
-                  >
-                    Explore Platform →
-                  </Link>
-                  {/* Secondary CTA — ghost */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-wrap gap-3">
+                    <HeroActionButton
+                      to="/book"
+                      title="Book Smart Ticket"
+                      subtitle="Passenger Services"
+                    />
+                    <HeroActionButton
+                      to="/dashboard"
+                      title="Operations Hub →"
+                      subtitle="Dashboard • Analytics"
+                      solid
+                    />
                     <a
                       href="#about"
                       className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-extrabold text-base text-white transition-all duration-200 hover:-translate-y-0.5"
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      backdropFilter: "blur(12px)",
-                    }}
-                  >
-                    View Architecture
-                  </a>
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        backdropFilter: "blur(12px)",
+                      }}
+                    >
+                      View Architecture
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -481,6 +526,9 @@ export default function Landing() {
                 { icon: "📡", title: "Real-time monitoring",  desc: "Live train positions, delay trends, and section status — updated every 10 seconds from Firestore." },
                 { icon: "⚠️", title: "Conflict forecasting",  desc: "Block-level overlap prediction before controllers are forced into reactive emergency holds." },
                 { icon: "🧠", title: "AI recommendations",    desc: "Ranked top-3 actions with plain-language explanation, estimated delay savings, and trains affected." },
+                { icon: "🧭", title: "Journey planner",       desc: "Compare direct and one-stop itineraries with layover quality and delay-aware route ranking." },
+                { icon: "🚉", title: "Live train status",     desc: "Passenger-side running status with current station, next stop, route progress, and ETA drift." },
+                { icon: "🔔", title: "Platform alerts",       desc: "Predicted platforms, crowd advisories, and boarding reminders that can be armed per train." },
                 { icon: "📋", title: "Audit & decision logs", desc: "Every accepted, modified, or rejected action is stored for traceability, trust, and analytics." },
                 { icon: "🔁", title: "What-if simulator",     desc: "Drag a train to a different loop and see the ripple effect across the section in real time." },
                 { icon: "📊", title: "KPI dashboards",        desc: "Throughput, average delay, on-time percentage, and platform utilization in one view." },
