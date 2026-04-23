@@ -1,16 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
 import { createBooking } from "../lib/api";
 import { useToast } from "../components/ToastProvider";
-import { TRAINS, searchStations, formatDuration, getFareForClass } from "../utils/seedData";
-import type { Passenger, Train } from "../types";
+import {
+  TRAINS,
+  searchStations,
+  formatDuration,
+  getFareForClass,
+  formatStationLabel,
+  formatStationDetail,
+  resolveStationQuery,
+  getStationName,
+} from "../utils/seedData";
+import type { Passenger, Station, Train } from "../types";
 
 const shell = {
-  background: "#06080d",
-  card: "rgba(255,255,255,0.04)",
-  border: "rgba(255,255,255,0.09)",
+  background: "#050505",
+  card: "rgba(255,255,255,0.05)",
+  cardStrong: "rgba(0,0,0,0.34)",
+  border: "rgba(255,255,255,0.11)",
 };
 
 function inputStyle() {
@@ -49,6 +59,7 @@ export default function BookTickets() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [user] = useAuthState(auth);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [fromQuery, setFromQuery] = useState("NDLS");
   const [toQuery, setToQuery] = useState("HWH");
@@ -57,13 +68,22 @@ export default function BookTickets() {
   const [selectedClass, setSelectedClass] = useState("");
   const [passengers, setPassengers] = useState<Passenger[]>([defaultPassenger()]);
   const [submitting, setSubmitting] = useState(false);
+  const [activeField, setActiveField] = useState<"from" | "to" | null>(null);
 
-  const fromSuggestions = useMemo(() => searchStations(fromQuery).slice(0, 5), [fromQuery]);
-  const toSuggestions = useMemo(() => searchStations(toQuery).slice(0, 5), [toQuery]);
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = 0.85;
+  }, []);
+
+  const fromSuggestions = useMemo(() => searchStations(fromQuery).slice(0, 8), [fromQuery]);
+  const toSuggestions = useMemo(() => searchStations(toQuery).slice(0, 8), [toQuery]);
+
+  const resolvedFrom = useMemo(() => resolveStationQuery(fromQuery), [fromQuery]);
+  const resolvedTo = useMemo(() => resolveStationQuery(toQuery), [toQuery]);
 
   const matchingTrains = useMemo(() => {
-    const from = fromQuery.trim().toUpperCase();
-    const to = toQuery.trim().toUpperCase();
+    const from = resolvedFrom?.code;
+    const to = resolvedTo?.code;
+    if (!from || !to) return [];
     return TRAINS
       .filter((train) => train.fromStation === from && train.toStation === to)
       .map((train) => {
@@ -72,7 +92,7 @@ export default function BookTickets() {
         const avgDelayMinutes = delayClass === "HIGH" ? 38 : delayClass === "MEDIUM" ? 14 : 4;
         return { ...train, delayClass, avgDelayMinutes };
       });
-  }, [fromQuery, toQuery]);
+  }, [resolvedFrom, resolvedTo]);
 
   const fareSummary = selectedTrain && selectedClass
     ? getFareForClass(selectedTrain, selectedClass) * passengers.length
@@ -85,6 +105,17 @@ export default function BookTickets() {
   const addPassenger = () => setPassengers((prev) => [...prev, defaultPassenger()]);
   const removePassenger = (index: number) => {
     setPassengers((prev) => prev.length === 1 ? prev : prev.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const selectStation = (field: "from" | "to", station: Station) => {
+    if (field === "from") {
+      setFromQuery(formatStationLabel(station));
+    } else {
+      setToQuery(formatStationLabel(station));
+    }
+    setActiveField(null);
+    setSelectedTrain(null);
+    setSelectedClass("");
   };
 
   const handleBook = async () => {
@@ -119,62 +150,244 @@ export default function BookTickets() {
       navigate("/my-bookings");
     } catch (error) {
       console.error(error);
-      showToast("Booking failed", "error", "Please try again in a moment");
+      showToast("Booking failed", "error", error instanceof Error ? error.message : "Please try again in a moment");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen px-5 py-8" style={{ background: shell.background }}>
-      <div className="max-w-[1280px] mx-auto">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35 mb-2">Smart Travel Desk</p>
-            <h1 className="text-white font-extrabold tracking-tight" style={{ fontSize: "clamp(2rem,4vw,3.25rem)" }}>
-              Book Tickets with Delay-Aware Suggestions
-            </h1>
-            <p className="text-sm text-white/45 mt-2 max-w-[760px]">
-              Search routes, compare delay risk, reserve seats, and move straight into operations-aware travel planning.
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Link to="/pnr-status" className="px-4 py-2 rounded-full text-sm font-bold text-white/75 border border-white/10 bg-white/5">
-              Check PNR
-            </Link>
-            <Link to="/my-bookings" className="px-4 py-2 rounded-full text-sm font-bold text-black bg-white">
-              My Bookings
-            </Link>
-          </div>
-        </div>
+    <div style={{ background: shell.background }}>
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="fixed inset-0 h-full w-full object-cover"
+        style={{ zIndex: 0, opacity: 0.5 }}
+      >
+        <source src="/hero-video.mp4" type="video/mp4" />
+      </video>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-5">
-          <div className="rounded-[24px] p-5" style={{ background: shell.card, border: `1px solid ${shell.border}` }}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-              <div>
-                <label className="block text-xs font-bold text-white/35 uppercase tracking-[0.16em] mb-2">From</label>
-                <input value={fromQuery} onChange={(e) => setFromQuery(e.target.value.toUpperCase())} style={inputStyle()} />
-                <div className="flex gap-2 flex-wrap mt-2">
-                  {fromSuggestions.map((station) => (
-                    <button key={station.code} onClick={() => setFromQuery(station.code)}
-                      className="px-2.5 py-1.5 rounded-full text-xs font-semibold text-white/70 bg-white/5 border border-white/10">
-                      {station.code}
-                    </button>
-                  ))}
-                </div>
+      <div
+        className="fixed inset-0"
+        style={{
+          zIndex: 1,
+          background: `
+            linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.68) 100%),
+            linear-gradient(to right, rgba(0,0,0,0.32) 0%, transparent 58%)
+          `,
+        }}
+      />
+
+      <div className="relative min-h-screen" style={{ zIndex: 2 }}>
+        <nav className="fixed left-0 right-0 top-0" style={{ zIndex: 50, background: "transparent", border: "none" }}>
+          <div className="mx-auto flex max-w-[1220px] items-center justify-between gap-8 px-6 py-5">
+            <Link to="/" className="flex items-center gap-3 shrink-0">
+              <div
+                className="grid h-10 w-10 place-items-center rounded-[14px] font-black text-lg"
+                style={{
+                  background: "#ffffff",
+                  color: "#050505",
+                  boxShadow: "0 8px 24px rgba(255,255,255,0.2)",
+                }}
+              >
+                T
+              </div>
+              <span className="text-base font-extrabold tracking-tight text-white">TrackMind AI</span>
+            </Link>
+
+            <div className="hidden flex-1 items-center justify-end gap-10 md:flex">
+              <div className="flex items-center gap-8 text-sm font-medium text-white/60">
+                <Link to="/" className="transition-colors duration-200 hover:text-white">Home</Link>
+                <Link to="/book" className="transition-colors duration-200 hover:text-white">Book Ticket</Link>
+                <Link to="/pnr-status" className="transition-colors duration-200 hover:text-white">PNR Status</Link>
+                <Link to="/my-bookings" className="transition-colors duration-200 hover:text-white">My Bookings</Link>
+                <Link to="/dashboard" className="transition-colors duration-200 hover:text-white">Dashboard</Link>
               </div>
 
-              <div>
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                Live Dashboard →
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        <div className="min-h-screen px-5 pb-10 pt-28 md:px-6 md:pt-32">
+          <div className="max-w-[1220px] mx-auto">
+            <div className="mb-8 max-w-[900px]">
+              <p
+                className="mb-4 inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-white"
+                  style={{ boxShadow: "0 0 0 4px rgba(255,255,255,0.15)" }}
+                />
+                Smart Travel Desk
+              </p>
+
+              <h1
+                className="font-display font-bold tracking-tight text-white"
+                style={{
+                  fontSize: "clamp(2.8rem,6vw,5.75rem)",
+                  lineHeight: 0.92,
+                  letterSpacing: "-0.03em",
+                  textShadow: "0 4px 60px rgba(0,0,0,0.7)",
+                }}
+              >
+                Delay-aware booking,
+                <span className="block text-white/90" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.35)" }}>
+                  wrapped in calm control.
+                </span>
+              </h1>
+
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <Link
+                  to="/pnr-status"
+                  className="rounded-full px-5 py-3 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
+                  Check PNR
+                </Link>
+                <Link
+                  to="/my-bookings"
+                  className="rounded-full bg-white px-5 py-3 text-sm font-bold text-black transition-all duration-200 hover:-translate-y-0.5"
+                >
+                  My Bookings
+                </Link>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[
+                  { to: "/journey-planner", label: "Journey Planner" },
+                  { to: "/live-status", label: "Live Train Status" },
+                  { to: "/platform-alerts", label: "Platform Alerts" },
+                  { to: "/pnr-status", label: "PNR Status" },
+                  { to: "/my-bookings", label: "My Bookings" },
+                ].map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="rounded-full px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.18)",
+                      backdropFilter: "blur(12px)",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+
+              <p className="mt-5 max-w-[720px] text-base leading-relaxed text-white/62 md:text-lg">
+                Search routes, compare delay risk, reserve seats, and move through ticketing in the same visual language as the live rail command center.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.12fr_0.88fr]">
+              <div
+                className="rounded-[30px] p-5 md:p-6"
+                style={{
+                  background: shell.cardStrong,
+                  border: `1px solid ${shell.border}`,
+                  backdropFilter: "blur(28px)",
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.3)",
+                }}
+              >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+              <div className="relative">
+                <label className="block text-xs font-bold text-white/35 uppercase tracking-[0.16em] mb-2">From</label>
+                <input
+                  value={fromQuery}
+                  onFocus={() => setActiveField("from")}
+                  onChange={(e) => setFromQuery(e.target.value)}
+                  placeholder="Search city or station"
+                  style={inputStyle()}
+                />
+                {resolvedFrom && (
+                  <p className="mt-2 text-xs text-white/45">
+                    {resolvedFrom.name}, {resolvedFrom.city}
+                  </p>
+                )}
+                {activeField === "from" && fromSuggestions.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-[100%] z-20 mt-2 overflow-hidden rounded-2xl"
+                    style={{
+                      background: "rgba(10,10,10,0.92)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      backdropFilter: "blur(20px)",
+                    }}
+                  >
+                    {fromSuggestions.map((station) => (
+                      <button
+                        key={station.code}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectStation("from", station)}
+                        className="w-full border-b border-white/8 px-4 py-3 text-left last:border-b-0 hover:bg-white/5"
+                      >
+                        <p className="text-sm font-semibold text-white">{formatStationLabel(station)}</p>
+                        <p className="text-xs text-white/45">{formatStationDetail(station)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
                 <label className="block text-xs font-bold text-white/35 uppercase tracking-[0.16em] mb-2">To</label>
-                <input value={toQuery} onChange={(e) => setToQuery(e.target.value.toUpperCase())} style={inputStyle()} />
-                <div className="flex gap-2 flex-wrap mt-2">
-                  {toSuggestions.map((station) => (
-                    <button key={station.code} onClick={() => setToQuery(station.code)}
-                      className="px-2.5 py-1.5 rounded-full text-xs font-semibold text-white/70 bg-white/5 border border-white/10">
-                      {station.code}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  value={toQuery}
+                  onFocus={() => setActiveField("to")}
+                  onChange={(e) => setToQuery(e.target.value)}
+                  placeholder="Search city or station"
+                  style={inputStyle()}
+                />
+                {resolvedTo && (
+                  <p className="mt-2 text-xs text-white/45">
+                    {resolvedTo.name}, {resolvedTo.city}
+                  </p>
+                )}
+                {activeField === "to" && toSuggestions.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-[100%] z-20 mt-2 overflow-hidden rounded-2xl"
+                    style={{
+                      background: "rgba(10,10,10,0.92)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      backdropFilter: "blur(20px)",
+                    }}
+                  >
+                    {toSuggestions.map((station) => (
+                      <button
+                        key={station.code}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectStation("to", station)}
+                        className="w-full border-b border-white/8 px-4 py-3 text-left last:border-b-0 hover:bg-white/5"
+                      >
+                        <p className="text-sm font-semibold text-white">{formatStationLabel(station)}</p>
+                        <p className="text-xs text-white/45">{formatStationDetail(station)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -220,7 +433,7 @@ export default function BookTickets() {
                           </div>
                           <p className="text-white/85 font-semibold">{train.trainName}</p>
                           <p className="text-sm text-white/40 mt-1">
-                            {train.fromStation} → {train.toStation} · {train.departureTime} to {train.arrivalTime} · {formatDuration(train.durationMinutes)}
+                            {getStationName(train.fromStation)} → {getStationName(train.toStation)} · {train.departureTime} to {train.arrivalTime} · {formatDuration(train.durationMinutes)}
                           </p>
                         </div>
                         <div className="text-right">
@@ -234,9 +447,17 @@ export default function BookTickets() {
                 })}
               </div>
             )}
-          </div>
+              </div>
 
-          <div className="rounded-[24px] p-5" style={{ background: shell.card, border: `1px solid ${shell.border}` }}>
+              <div
+                className="rounded-[30px] p-5 md:p-6"
+                style={{
+                  background: shell.cardStrong,
+                  border: `1px solid ${shell.border}`,
+                  backdropFilter: "blur(28px)",
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.3)",
+                }}
+              >
             <div className="mb-5">
               <h2 className="text-white font-bold text-lg">Booking Summary</h2>
               <p className="text-sm text-white/40 mt-1">Select a train and passenger details to generate a live PNR.</p>
@@ -251,7 +472,7 @@ export default function BookTickets() {
                 <div className="rounded-2xl p-4 mb-4 border border-white/10 bg-white/5">
                   <p className="text-white font-extrabold">{selectedTrain.trainName}</p>
                   <p className="text-sm text-white/40 mt-1">
-                    {selectedTrain.trainNumber} · {selectedTrain.fromStation} → {selectedTrain.toStation}
+                    {selectedTrain.trainNumber} · {getStationName(selectedTrain.fromStation)} → {getStationName(selectedTrain.toStation)}
                   </p>
                   <div className="grid grid-cols-2 gap-3 mt-4">
                     {Object.entries(selectedTrain.classes).map(([className, seat]) => (
@@ -340,6 +561,8 @@ export default function BookTickets() {
                 </button>
               </>
             )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
