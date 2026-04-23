@@ -275,27 +275,39 @@ export default function BookTickets() {
                 </Link>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {[
-                  { to: "/journey-planner", label: "Journey Planner" },
-                  { to: "/live-status", label: "Live Train Status" },
-                  { to: "/platform-alerts", label: "Platform Alerts" },
-                  { to: "/pnr-status", label: "PNR Status" },
-                  { to: "/my-bookings", label: "My Bookings" },
-                ].map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className="rounded-full px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
-                    style={{
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.18)",
-                      backdropFilter: "blur(12px)",
-                    }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              <div
+                className="mt-5 rounded-[24px] p-4"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  backdropFilter: "blur(18px)",
+                }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/42">
+                  Inside Book Smart Ticket
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    { to: "/journey-planner", label: "Journey Planner", sub: "Compare routes and layovers" },
+                    { to: "/live-status", label: "Live Train Status", sub: "Track current position and ETA" },
+                    { to: "/platform-alerts", label: "Platform Alerts", sub: "Platform prediction and crowd alerts" },
+                    { to: "/pnr-status", label: "PNR Status", sub: "Check booking and seat status" },
+                    { to: "/my-bookings", label: "My Bookings", sub: "See all tickets in one place" },
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="rounded-2xl px-4 py-3 text-white transition-all duration-200 hover:-translate-y-0.5"
+                      style={{
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                      }}
+                    >
+                      <p className="text-sm font-bold">{item.label}</p>
+                      <p className="mt-1 text-xs text-white/45">{item.sub}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
 
               <p className="mt-5 max-w-[720px] text-base leading-relaxed text-white/62 md:text-lg">

@@ -94,6 +94,60 @@ export const resolveConflict = (data: {
     body: JSON.stringify(data),
   });
 
+export const optimizeSection = (data: {
+  section_id: string;
+  trains: import('../types').OptimizationTrainInput[];
+  constraints: import('../types').OptimizationConstraints;
+}) =>
+  apiFetch<import('../types').SectionOptimizationResult>('/optimize-section', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const simulateScenario = (data: {
+  section_id: string;
+  trains: import('../types').OptimizationTrainInput[];
+  constraints: import('../types').OptimizationConstraints;
+  scenario: {
+    target_train?: string;
+    hold_minutes: number;
+    reroute_train?: string;
+    maintenance_blocks: string[];
+    weather_factor?: number;
+    platform_override: Record<string, string>;
+  };
+}) =>
+  apiFetch<import('../types').ScenarioSimulationResult>('/simulate-scenario', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const getIntegrationSources = () =>
+  apiFetch<import('../types').IntegrationBlueprint>('/integration-sources');
+
+export const saveControllerOverride = (data: {
+  recommendation_id: string;
+  train_number: string;
+  block_id: string;
+  ai_action: string;
+  controller_action: string;
+  reason: string;
+  approved: boolean;
+  expected_delay_delta: number;
+}) =>
+  apiFetch<{ status: string; entry: import('../types').ControllerOverrideEntry; count: number }>(
+    '/controller-override',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+
+export const getControllerOverrides = (limit = 20) =>
+  apiFetch<{ entries: import('../types').ControllerOverrideEntry[]; count: number }>(
+    `/controller-overrides?limit=${limit}`
+  );
+
 // ── Firestore Booking helpers ────────────────────────────────
 import {
   collection, addDoc, getDocs, doc,

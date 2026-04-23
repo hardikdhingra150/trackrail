@@ -11,6 +11,7 @@ import RecommendationPanel from "../components/RecommendationPanel";
 import KpiCards from "../components/KpiCards";
 import BlockMap from "../components/BlockMap";
 import Analytics from "./Analytics";
+import OptimizationStudio from "../components/OptimizationStudio";
 import OnboardingTour from "../components/OnboardingTour";
 import PredictiveWarningBanner from "../components/PredictiveWarningBanner";
 import { getAllTrainDelays } from '../utils/simulateTrains';
@@ -18,7 +19,7 @@ import { seedFirestoreTrains } from '../utils/seedData';
 import { useToast } from "../components/ToastProvider";
 import type { DelayPrediction, FirestoreTrain } from "../types";
 
-type Tab = "dashboard" | "analytics";
+type Tab = "dashboard" | "analytics" | "optimization";
 
 
 
@@ -174,6 +175,7 @@ export default function Dashboard() {
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "1") setActiveTab("dashboard");
       if (e.key === "2") setActiveTab("analytics");
+      if (e.key === "3") setActiveTab("optimization");
       if (e.key === " ") { e.preventDefault(); toggleLive(); }
       if (e.key === "Escape") setShowNotifs(false);
     };
@@ -264,6 +266,7 @@ export default function Dashboard() {
             {[
               { key: "1", label: "Dash" },
               { key: "2", label: "Analytics" },
+              { key: "3", label: "Optimizer" },
               { key: "Space", label: "Live" },
             ].map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1 text-[10px] text-white/20">
@@ -523,7 +526,7 @@ export default function Dashboard() {
             ? "bg-emerald-500/[0.02] border-emerald-500/15"
             : "bg-white/[0.015] border-white/[0.06]"
           }`}>
-          {(["dashboard", "analytics"] as Tab[]).map((tab) => (
+          {(["dashboard", "analytics", "optimization"] as Tab[]).map((tab) => (
             <button
               key={tab}
               data-tour={tab === "analytics" ? "analytics-tab" : undefined}
@@ -535,7 +538,11 @@ export default function Dashboard() {
                   : "text-white/35 hover:text-white/60"
                 }`}
             >
-              {tab === "dashboard" ? "🗺  Dashboard" : "📊  Analytics"}
+              {tab === "dashboard"
+                ? "🗺  Dashboard"
+                : tab === "analytics"
+                  ? "📊  Analytics"
+                  : "🧠  Optimization"}
               {activeTab === tab && (
                 <span className="absolute bottom-0 left-4 right-4 h-[2px]
                   rounded-full bg-amber-400" />
@@ -593,10 +600,15 @@ export default function Dashboard() {
               <RecommendationPanel delays={delays} />
             </div>
           </div>
-        ) : (
+        ) : activeTab === "analytics" ? (
           <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07]
             backdrop-blur-xl overflow-hidden">
             <Analytics />
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07]
+            backdrop-blur-xl overflow-hidden">
+            <OptimizationStudio liveTrains={liveTrains} delays={delays} />
           </div>
         )}
 
@@ -605,6 +617,7 @@ export default function Dashboard() {
           {[
             ["1", "dashboard"],
             ["2", "analytics"],
+            ["3", "optimization"],
             ["Space", "pause / resume"],
             ["Esc", "close panel"],
           ].map(([key, desc]) => (

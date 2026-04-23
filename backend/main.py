@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, Literal
 from contextlib import asynccontextmanager
 from collections import defaultdict
 import traceback
@@ -52,6 +52,7 @@ _stats: dict = {
     "errors":             0,
     "started_at":         None,
 }
+_override_audit: list[dict] = []
 
 
 # ── Simple in-memory cache (ttl=10s) ─────────────────────────
@@ -187,6 +188,83 @@ class ConflictInput(BaseModel):
     def trains_differ(cls, v: str, info) -> str:
         if info.data.get("trainA") == v:
             raise ValueError("trainA and trainB must be different")
+        return v
+
+
+class OptimizationTrainInput(BaseModel):
+    train_number: str = Field(..., min_length=1, max_length=20)
+    current_block: str = Field(..., min_length=1, max_length=10)
+    priority: int = Field(2, ge=1, le=4)
+    delay_minutes: float = Field(0, ge=0, le=180)
+    speed_kmph: float = Field(60, ge=0, le=160)
+    status: str = Field("on_time", max_length=20)
+    direction: Literal["up", "down"] = "up"
+    requested_platform: Optional[str] = Field(None, max_length=10)
+
+    @field_validator("current_block")
+    @classmethod
+    def validate_opt_block(cls, v: str) -> str:
+        if v not in VALID_BLOCKS:
+            raise ValueError(f"current_block must be one of {sorted(VALID_BLOCKS)}")
+        return v
+
+
+class OptimizationConstraintInput(BaseModel):
+    headway_seconds: int = Field(240, ge=60, le=1200)
+    line_capacity: int = Field(10, ge=1, le=24)
+    platform_capacity: int = Field(4, ge=1, le=12)
+    maintenance_blocks: list[str] = Field(default_factory=list)
+    weather_factor: float = Field(1.0, ge=1.0, le=2.0)
+    gradient_penalty: float = Field(0.08, ge=0, le=1)
+    signal_spacing_penalty: float = Field(0.16, ge=0, le=1)
+    loop_availability: dict[str, int] = Field(default_factory=dict)
+
+    @field_validator("maintenance_blocks")
+    @classmethod
+    def validate_maintenance_blocks(cls, blocks: list[str]) -> list[str]:
+        invalid = [block for block in blocks if block not in VALID_BLOCKS]
+        if invalid:
+            raise ValueError(f"maintenance_blocks contains invalid blocks: {invalid}")
+        return blocks
+
+
+class OptimizationRequest(BaseModel):
+    section_id: str = Field("NDLS-GZB", min_length=1, max_length=40)
+    trains: list[OptimizationTrainInput] = Field(..., min_length=1, max_length=24)
+    constraints: OptimizationConstraintInput = Field(default_factory=OptimizationConstraintInput)
+
+
+class ScenarioConfig(BaseModel):
+    target_train: Optional[str] = Field(None, max_length=20)
+    hold_minutes: float = Field(0, ge=0, le=30)
+    reroute_train: Optional[str] = Field(None, max_length=20)
+    maintenance_blocks: list[str] = Field(default_factory=list)
+    weather_factor: Optional[float] = Field(None, ge=1.0, le=2.0)
+    platform_override: dict[str, str] = Field(default_factory=dict)
+
+
+class ScenarioSimulationRequest(BaseModel):
+    section_id: str = Field("NDLS-GZB", min_length=1, max_length=40)
+    trains: list[OptimizationTrainInput] = Field(..., min_length=1, max_length=24)
+    constraints: OptimizationConstraintInput = Field(default_factory=OptimizationConstraintInput)
+    scenario: ScenarioConfig = Field(default_factory=ScenarioConfig)
+
+
+class ControllerOverrideRequest(BaseModel):
+    recommendation_id: str = Field(..., min_length=1, max_length=80)
+    train_number: str = Field(..., min_length=1, max_length=20)
+    block_id: str = Field(..., min_length=1, max_length=10)
+    ai_action: str = Field(..., min_length=1, max_length=30)
+    controller_action: str = Field(..., min_length=1, max_length=30)
+    reason: str = Field(..., min_length=3, max_length=240)
+    approved: bool = True
+    expected_delay_delta: float = Field(0, ge=-180, le=180)
+
+    @field_validator("block_id")
+    @classmethod
+    def validate_override_block(cls, v: str) -> str:
+        if v not in VALID_BLOCKS:
+            raise ValueError(f"block_id must be one of {sorted(VALID_BLOCKS)}")
         return v
 
 
@@ -477,6 +555,72 @@ def resolve_conflict(conflict: ConflictInput):
         log.error(f"[conflict] {conflict.trainA}↔{conflict.trainB} failed: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/optimize-section", tags=["Optimization"],
+          dependencies=[Depends(rate_limit)])
+def optimize_section(body: OptimizationRequest):
+    t0 = time.perf_counter()
+    try:
+        result = solver.optimize_section(body.model_dump())
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return {
+            **result,
+            "latency_ms": elapsed_ms,
+        }
+    except Exception as e:
+        _stats["errors"] += 1
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/simulate-scenario", tags=["Optimization"],
+          dependencies=[Depends(rate_limit)])
+def simulate_scenario(body: ScenarioSimulationRequest):
+    t0 = time.perf_counter()
+    try:
+        result = solver.simulate_scenario(body.model_dump())
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        return {
+            **result,
+            "latency_ms": elapsed_ms,
+        }
+    except Exception as e:
+        _stats["errors"] += 1
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/integration-sources", tags=["Optimization"])
+def integration_sources():
+    try:
+        return solver.get_integration_blueprint()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/controller-override", tags=["Optimization"],
+          dependencies=[Depends(rate_limit)])
+def controller_override(body: ControllerOverrideRequest):
+    entry = {
+        **body.model_dump(),
+        "timestamp": round(time.time() * 1000),
+    }
+    _override_audit.insert(0, entry)
+    del _override_audit[50:]
+    return {
+        "status": "logged",
+        "entry": entry,
+        "count": len(_override_audit),
+    }
+
+
+@app.get("/controller-overrides", tags=["Optimization"])
+def controller_overrides(limit: int = 20):
+    return {
+        "entries": _override_audit[: max(1, min(limit, 50))],
+        "count": len(_override_audit),
+    }
 
 
 # ── New RF-powered routes ─────────────────────────────────────
