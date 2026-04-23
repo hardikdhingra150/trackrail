@@ -110,3 +110,53 @@ export interface TopDelayedTrain {
   train_number: string;
   average_delay_minutes: number;
 }
+
+export interface JourneyLeg {
+  trainNumber: string;
+  trainName: string;
+  fromStation: string;
+  toStation: string;
+  departureTime: string;
+  arrivalTime: string;
+  durationMinutes: number;
+  delayClass: 'HIGH' | 'MEDIUM' | 'LOW';
+  avgDelayMinutes: number;
+}
+
+export interface JourneyPlan {
+  id: string;
+  type: 'DIRECT' | 'ONE_STOP';
+  totalDurationMinutes: number;
+  averageDelayMinutes: number;
+  confidenceLabel: 'STEADY' | 'WATCH' | 'RISKY';
+  transferStation?: string;
+  layoverMinutes?: number;
+  legs: JourneyLeg[];
+}
+
+export interface LiveRunningStatus {
+  trainNumber: string;
+  trainName: string;
+  fromStation: string;
+  toStation: string;
+  currentStation: string;
+  nextStation: string;
+  currentPlatform: string;
+  estimatedPlatform: string;
+  status: 'ON_TIME' | 'DELAYED' | 'CRITICAL';
+  delayMinutes: number;
+  speedKmph: number;
+  progress: number;
+  scheduledArrival: string;
+  estimatedArrival: string;
+  route: string[];
+  crowdLevel: 'LOW' | 'MODERATE' | 'HIGH';
+}
+
+export interface PlatformAlertPreference {
+  trainNumber: string;
+  platformAlerts: boolean;
+  delayAlerts: boolean;
+  boardingReminder: boolean;
+  crowdAlerts: boolean;
+}
