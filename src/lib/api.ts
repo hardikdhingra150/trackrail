@@ -97,10 +97,35 @@ export const resolveConflict = (data: {
 // ── Firestore Booking helpers ────────────────────────────────
 import {
   collection, addDoc, getDocs, doc,
-  updateDoc, query, where, orderBy, Timestamp
+  updateDoc, query, where, orderBy
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Booking, Passenger } from '../types';
+
+const LOCAL_BOOKINGS_KEY = 'trackmind.local.bookings';
+
+function readLocalBookings(): Booking[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_BOOKINGS_KEY);
+    return raw ? JSON.parse(raw) as Booking[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalBookings(bookings: Booking[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(bookings));
+}
+
+function mergeBookings(primary: Booking[], secondary: Booking[]): Booking[] {
+  const map = new Map<string, Booking>();
+  [...secondary, ...primary].forEach((booking) => {
+    map.set(booking.id, booking);
+  });
+  return [...map.values()].sort((a, b) => b.bookedAt.localeCompare(a.bookedAt));
+}
 
 // Generate a random PNR
 export const generatePNR = (): string => {
@@ -121,19 +146,36 @@ export const createBooking = async (
     bookedAt: new Date().toISOString(),
     status: 'CONFIRMED' as const,
   };
-  const ref = await addDoc(collection(db, 'bookings'), newBooking);
-  return { ...newBooking, id: ref.id };
+  try {
+    const ref = await addDoc(collection(db, 'bookings'), newBooking);
+    return { ...newBooking, id: ref.id };
+  } catch (error) {
+    console.warn('Firestore booking write failed, using local fallback.', error);
+    const localBooking: Booking = {
+      ...newBooking,
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    };
+    writeLocalBookings([localBooking, ...readLocalBookings()]);
+    return localBooking;
+  }
 };
 
 // Get all bookings for a user
 export const getUserBookings = async (userId: string): Promise<Booking[]> => {
-  const q = query(
-    collection(db, 'bookings'),
-    where('userId', '==', userId),
-    orderBy('bookedAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+  const local = readLocalBookings().filter((booking) => booking.userId === userId);
+  try {
+    const q = query(
+      collection(db, 'bookings'),
+      where('userId', '==', userId),
+      orderBy('bookedAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const remote = snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+    return mergeBookings(remote, local);
+  } catch (error) {
+    console.warn('Firestore booking read failed, using local fallback.', error);
+    return local.sort((a, b) => b.bookedAt.localeCompare(a.bookedAt));
+  }
 };
 
 // Cancel a booking
@@ -141,18 +183,37 @@ export const cancelBooking = async (
   bookingId: string,
   refundAmount: number
 ): Promise<void> => {
-  await updateDoc(doc(db, 'bookings', bookingId), {
-    status: 'CANCELLED',
+  const update = {
+    status: 'CANCELLED' as const,
     cancelledAt: new Date().toISOString(),
     refundAmount,
-  });
+  };
+
+  try {
+    if (!bookingId.startsWith('local-')) {
+      await updateDoc(doc(db, 'bookings', bookingId), update);
+    }
+  } catch (error) {
+    console.warn('Firestore cancel failed, updating local booking instead.', error);
+  }
+
+  const local = readLocalBookings();
+  const next = local.map((booking) => booking.id === bookingId ? { ...booking, ...update } : booking);
+  writeLocalBookings(next);
 };
 
 // Get booking by PNR
 export const getBookingByPNR = async (pnr: string): Promise<Booking | null> => {
-  const q = query(collection(db, 'bookings'), where('pnr', '==', pnr.toUpperCase()));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() } as Booking;
+  const normalized = pnr.toUpperCase();
+  const local = readLocalBookings().find((booking) => booking.pnr === normalized) ?? null;
+  try {
+    const q = query(collection(db, 'bookings'), where('pnr', '==', normalized));
+    const snap = await getDocs(q);
+    if (snap.empty) return local;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() } as Booking;
+  } catch (error) {
+    console.warn('Firestore PNR lookup failed, using local fallback.', error);
+    return local;
+  }
 };
